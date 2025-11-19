@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 
 MAX_CHARS = 10000
 
@@ -26,6 +28,7 @@ def get_files_info(working_directory, directory="."):
     except Exception as e:
         return f"Error listing files: {e}"
 
+
 def get_file_content(working_directory, file_path):
 
     abs_working_dir = os.path.abspath(working_directory)
@@ -49,6 +52,7 @@ def get_file_content(working_directory, file_path):
     except Exception as e:
         return f"Error reading file: {e}"
 
+
 def write_file(working_directory, file_path, content):
 
     abs_working_dir = os.path.abspath(working_directory)
@@ -56,7 +60,7 @@ def write_file(working_directory, file_path, content):
 
     if os.path.commonpath([abs_working_dir, abs_file_path]) != abs_working_dir:
         return f'Error: Cannot read "{file_path}" as it is outside the permitted working directory'
-    
+
     if os.path.exists(abs_file_path) and os.path.isdir(abs_file_path):
         return f'Error: "{file_path}" is a directory, not a file'
 
@@ -72,8 +76,50 @@ def write_file(working_directory, file_path, content):
             f.write(content)
     except Exception as e:
         return f'Error writing file "{file_path}": {e}'
+
+    return (
+        f'Successfully wrote to "{abs_file_path}" ({len(content)} characters written)'
+    )
+
+
+def run_python_file(working_directory, file_path, args=[]):
+
+    abs_working_dir = os.path.abspath(working_directory)
+    abs_file_path = os.path.abspath(os.path.join(working_directory, file_path))
+
+    if os.path.commonpath([abs_working_dir, abs_file_path]) != abs_working_dir:
+        return f'Error: Cannot execute "{file_path}" as it is outside the permitted working directory'
+
+    if os.path.exists(abs_file_path) and os.path.isdir(abs_file_path):
+        return f'Error: "{file_path}" is a directory, not a file'
+
+    if not os.path.exists(abs_file_path):
+        return f'Error: File "{file_path}" not found.'
+
+    if not abs_file_path.endswith(".py"):
+        return f'Error: "{file_path}" is not a Python file.'
+
+    try:
+        result = subprocess.run(
+            [sys.executable, abs_file_path, *args],
+            timeout=30,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        output = "No output produced.\n"
+        if result.stdout or result.stderr:
+            output = f"STDOUT: {result.stdout}"
+            output += f"STDERR: {result.stderr}\n"
+        if result.returncode:
+            output += f"Process exited with code {result.returncode}\n"
+
+        return output
     
-    return f'Successfully wrote to "{abs_file_path}" ({len(content)} characters written)'
+    except Exception as e:
+        return f"Error: executing Python file: {e}"
+
 
 def write_file_alt(working_directory, file_path, content):
 
@@ -97,6 +143,7 @@ def write_file_alt(working_directory, file_path, content):
     except Exception as e:
         return f"Error: writing to file: {e}"
 
+
 def get_file_content_alt(working_directory, file_path):
 
     abs_working_dir = os.path.abspath(working_directory)
@@ -118,6 +165,7 @@ def get_file_content_alt(working_directory, file_path):
         return content
     except Exception as e:
         return f'Error reading file "{file_path}": {e}'
+
 
 def get_files_info_alt(working_directory, directory="."):
 
